@@ -5,6 +5,10 @@ from .servicos import (
     cadastrar_produto,
     listar_produtos,
     listar_tipos_categoria,
+    listar_categorias,
+    listar_funcionarios,
+    cadastrar_categoria,
+    cadastrar_funcionario,
     obter_produto,
     atualizar_produto,
     deletar_produto,
@@ -27,10 +31,46 @@ def tipos_categoria():
     return fk.jsonify(listar_tipos_categoria())
 
 
+@bp.get("/categorias")
+def categorias():
+    return fk.jsonify(listar_categorias())
+
+
+@bp.post("/categorias")
+def criar_categoria():
+    dados = fk.request.get_json(silent=True) or {}
+
+    try:
+        return fk.jsonify(cadastrar_categoria(dados)), 201
+
+    except ValueError as exc:
+        return _erro(str(exc))
+
+
+@bp.get("/funcionarios")
+def funcionarios():
+    return fk.jsonify(listar_funcionarios())
+
+
+@bp.post("/funcionarios")
+def criar_funcionario():
+    dados = fk.request.get_json(silent=True) or {}
+
+    try:
+        return fk.jsonify(cadastrar_funcionario(dados)), 201
+
+    except ValueError as exc:
+        return _erro(str(exc))
+
+    except IntegrityError:
+        return _erro("Já existe um funcionário com este e-mail.", 409)
+
+
 @bp.get("/produtos/<int:produto_id>")
 def obter_produto_rota(produto_id):
     try:
         return fk.jsonify(obter_produto(produto_id))
+
     except ValueError as exc:
         return _erro(str(exc), 404)
 

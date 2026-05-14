@@ -9,24 +9,45 @@ const COLUNAS = {
     { chave: "descricao", titulo: "Descrição" },
     { chave: "valor_total", titulo: "Valor Total" },
   ],
-  turmas: [
+  categorias: [
+    { chave: "id", titulo: "ID" },
+    { chave: "nome", titulo: "Nome" },
+  ],
+  funcionarios: [
+    { chave: "id", titulo: "ID" },
+    { chave: "nome", titulo: "Nome" },
+    { chave: "email", titulo: "Email" },
+    { chave: "cargo", titulo: "Cargo" },
   ],
 };
 
 const TITULOS = {
-  produtos: { lista: "Produtos", form: "Novo produto" }
+  produtos: { lista: "Produtos", form: "Novo produto" },
+  categorias: { lista: "Categorias", form: "Nova categoria" },
+  funcionarios: { lista: "Funcionários", form: "Novo funcionário" },
 };
 
 const CAMPOS = {
   produtos: [
     { nome: "nome", rotulo: "Nome", obrigatorio: true },
     { nome: "codigo", rotulo: "Código", obrigatorio: true },
-    { nome: "categoria", rotulo: "Categoria" },
+    { nome: "id_categoria", rotulo: "Categoria", tipo: "select", origem: "categorias" },
     { nome: "preco", rotulo: "Preço", tipo: "number" },
     { nome: "quantidade", rotulo: "Quantidade", tipo: "number" },
     { nome: "descricao", rotulo: "Descrição", tipo: "text" },
   ],
+  categorias: [
+    { nome: "nome", rotulo: "Nome", obrigatorio: true },
+  ],
+  funcionarios: [
+    { nome: "nome", rotulo: "Nome", obrigatorio: true },
+    { nome: "email", rotulo: "Email", tipo: "email", obrigatorio: true },
+    { nome: "cargo", rotulo: "Cargo" },
+    { nome: "senha", rotulo: "Senha", tipo: "password", obrigatorio: true },
+  ],
 };
+
+
 
 const elementoStatus = document.getElementById("status");
 const elementoTituloLista = document.getElementById("titulo-lista");
@@ -155,7 +176,7 @@ async function renderizarFormulario(tipo) {
 }
 
 function rotuloItem(origem, item) {
-  if (origem === "produtos") return `${item.nome} (id ${item.id})`;
+  if (item.nome) return `${item.nome}`;
   return `${item.id}`;
 }
 
@@ -218,4 +239,4 @@ abas.forEach((aba) => {
 botaoRecarregar.addEventListener("click", () => carregar(tipoAtual));
 formulario.addEventListener("submit", enviarFormulario);
 
-carregar("professores");
+carregar("produtos");

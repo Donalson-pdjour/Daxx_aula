@@ -60,6 +60,18 @@ class Produto(Base):
 
     valor_total = Column(Float, nullable=True)
 
+    entrada = Column(Integer, default=0)
+
+    saida = Column(Integer, default=0)
+
+    hora_entrada = Column(String(8), nullable=True)
+
+    hora_saida = Column(String(8), nullable=True)
+
+    data_entrada = Column(DateTime, nullable=True)
+
+    data_saida = Column(DateTime, nullable=True)
+
     # Relacionamento com Tipos_categoria
     tipo_categoria = relationship(
         "Tipos_categoria",
@@ -78,18 +90,22 @@ class Produto(Base):
             "disponivel": self.disponivel,
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
-
             "valor_total": (
                 self.preco * self.quantidade
                 if self.preco is not None and self.quantidade is not None
                 else None
             ),
-
             "categoria": (
                 self.tipo_categoria.nome
                 if self.tipo_categoria
                 else None
             ),
+            "entrada": self.entrada,
+            "saida": self.saida,
+            "hora_entrada": self.hora_entrada,
+            "hora_saida": self.hora_saida,
+            "data_entrada": self.data_entrada.isoformat() if self.data_entrada else None,
+            "data_saida": self.data_saida.isoformat() if self.data_saida else None,
         }
 
     def __repr__(self):

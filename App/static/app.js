@@ -6,8 +6,13 @@ const COLUNAS = {
     { chave: "categoria", titulo: "Categoria" },
     { chave: "preco", titulo: "Preço" },
     { chave: "quantidade", titulo: "Quantidade" },
-    { chave: "descricao", titulo: "Descrição" },
     { chave: "valor_total", titulo: "Valor Total" },
+    { chave: "data_entrada", titulo: "Data Entrada" },
+    { chave: "hora_entrada", titulo: "Hora Entrada" },
+    { chave: "data_saida", titulo: "Data Saída" },
+    { chave: "hora_saida", titulo: "Hora Saída" },
+    { chave: "updated_at", titulo: "Alteração" },
+    { chave: "acoes", titulo: "Ações" },
   ],
   categorias: [
     { chave: "id", titulo: "ID" },
@@ -34,6 +39,12 @@ const CAMPOS = {
     { nome: "id_categoria", rotulo: "Categoria", tipo: "select", origem: "categorias" },
     { nome: "preco", rotulo: "Preço", tipo: "number" },
     { nome: "quantidade", rotulo: "Quantidade", tipo: "number" },
+    { nome: "entrada", rotulo: "Entrada", tipo: "number", placeholder: "Quantidade que entra" },
+    { nome: "saida", rotulo: "Saída", tipo: "number", placeholder: "Quantidade que sai" },
+    { nome: "data_entrada", rotulo: "Data Entrada (Auto)", tipo: "datetime-local" },
+    { nome: "hora_entrada", rotulo: "Hora Entrada (Auto)", tipo: "time" },
+    { nome: "data_saida", rotulo: "Data Saída (Auto)", tipo: "datetime-local" },
+    { nome: "hora_saida", rotulo: "Hora Saída (Auto)", tipo: "time" },
     { nome: "descricao", rotulo: "Descrição", tipo: "text" },
   ],
   categorias: [
@@ -61,6 +72,7 @@ const botaoRecarregar = document.getElementById("botao-recarregar");
 const abas = document.querySelectorAll(".aba");
 
 let tipoAtual = "produtos";
+let editandoId = null;
 
 async function buscar(tipo) {
   const resposta = await fetch(`/api/${tipo}`);
@@ -116,8 +128,34 @@ function renderizarLinhas(tipo, dados) {
     const tr = document.createElement("tr");
     for (const coluna of COLUNAS[tipo]) {
       const td = document.createElement("td");
-      const valor = item[coluna.chave];
-      td.textContent = valor === null || valor === undefined ? "—" : valor;
+      if (coluna.chave === "acoes") {
+        if (tipo === "produtos") {
+          const btnEditar = document.createElement("button");
+          btnEditar.textContent = "✏️ Editar";
+          btnEditar.className = "btn-acao btn-editar";
+          btnEditar.onclick = () => editarItem(item.id);
+          td.appendChild(btnEditar);
+
+          const btnApagar = document.createElement("button");
+          btnApagar.textContent = "🗑️ Apagar";
+          btnApagar.className = "btn-acao btn-apagar";
+          btnApagar.onclick = () => deletarItem(item.id);
+          td.appendChild(btnApagar);
+        }
+      } else {
+        const valor = item[coluna.chave];
+        let textoExibir = "—";
+        if (valor !== null && valor !== undefined) {
+          if (coluna.chave === "data_entrada" || coluna.chave === "data_saida" || coluna.chave === "updated_at") {
+            textoExibir = new Date(valor).toLocaleDateString("pt-BR");
+          } else if (coluna.chave === "preco" || coluna.chave === "valor_total") {
+            textoExibir = parseFloat(valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+          } else {
+            textoExibir = valor;
+          }
+        }
+        td.textContent = textoExibir;
+      }
       tr.appendChild(td);
     }
     elementoCorpo.appendChild(tr);
@@ -168,6 +206,14 @@ async function renderizarFormulario(tipo) {
       input.id = `campo-${campo.nome}`;
       input.name = campo.nome;
       if (campo.obrigatorio) input.required = true;
+      if (campo.placeholder) input.placeholder = campo.placeholder;
+      
+      // Desabilitar campos de data/hora que são preenchidos automaticamente
+      if (campo.nome.includes("data_") || campo.nome.includes("hora_")) {
+        input.disabled = true;
+        input.title = "Preenchido automaticamente ao registrar entrada/saída";
+      }
+      
       wrapper.appendChild(input);
     }
 
@@ -202,11 +248,30 @@ async function enviarFormulario(evento) {
     if (valor !== "") dados[campo.nome] = valor;
   }
 
+  // Preencher automaticamente data e hora para entrada/saída
+  if (tipoAtual === "produtos") {
+    const agora = new Date();
+    
+    // Se tem entrada, preencher data_entrada e hora_entrada
+    if (dados.entrada && !dados.data_entrada) {
+      dados.data_entrada = agora.toISOString();
+      dados.hora_entrada = agora.toTimeString().slice(0, 5);
+    }
+    
+    // Se tem saída, preencher data_saida e hora_saida
+    if (dados.saida && !dados.data_saida) {
+      dados.data_saida = agora.toISOString();
+      dados.hora_saida = agora.toTimeString().slice(0, 5);
+    }
+  }
+
   const botao = formulario.querySelector("button[type=submit]");
   botao.disabled = true;
   try {
-    const resposta = await fetch(`/api/${tipoAtual}`, {
-      method: "POST",
+    const method = editandoId ? "PUT" : "POST";
+    const url = editandoId ? `/api/${tipoAtual}/${editandoId}` : `/api/${tipoAtual}`;
+    const resposta = await fetch(url, {
+      method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dados),
     });
@@ -216,15 +281,58 @@ async function enviarFormulario(evento) {
       throw new Error(corpo.erro || `HTTP ${resposta.status}`);
     }
 
-    mensagemFormulario.textContent = "Cadastrado com sucesso.";
+    const acao = editandoId ? "Atualizado" : "Cadastrado";
+    mensagemFormulario.textContent = `${acao} com sucesso.`;
     mensagemFormulario.classList.add("sucesso");
     formulario.reset();
+    if (editandoId) {
+      editandoId = null;
+      elementoTituloFormulario.textContent = TITULOS[tipoAtual].form;
+      botao.textContent = "Cadastrar";
+    }
     await carregar(tipoAtual);
   } catch (erro) {
     mensagemFormulario.textContent = erro.message;
     mensagemFormulario.classList.add("erro");
   } finally {
     botao.disabled = false;
+  }
+}
+
+async function editarItem(id) {
+  try {
+    const resposta = await fetch(`/api/${tipoAtual}/${id}`);
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    const item = await resposta.json();
+
+    // Populate form
+    for (const campo of CAMPOS[tipoAtual]) {
+      const elemento = formulario.elements[campo.nome];
+      if (elemento) {
+        elemento.value = item[campo.nome] || "";
+      }
+    }
+
+    editandoId = id;
+    elementoTituloFormulario.textContent = `Editar ${TITULOS[tipoAtual].form.split(" ")[1]}`;
+    formulario.querySelector("button[type=submit]").textContent = "Atualizar";
+    limparMensagem();
+  } catch (erro) {
+    alert(`Erro ao carregar item: ${erro.message}`);
+  }
+}
+
+async function deletarItem(id) {
+  if (!confirm("Tem certeza que deseja apagar este item?")) return;
+
+  try {
+    const resposta = await fetch(`/api/${tipoAtual}/${id}`, {
+      method: "DELETE",
+    });
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    await carregar(tipoAtual);
+  } catch (erro) {
+    alert(`Erro ao apagar: ${erro.message}`);
   }
 }
 

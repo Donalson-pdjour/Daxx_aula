@@ -105,6 +105,16 @@ body {
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
 }
 
+.campo input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.campo input:disabled::placeholder {
+  color: #d1d5db;
+}
+
 .acoes-formulario {
   display: flex;
   align-items: center;
@@ -187,4 +197,37 @@ tbody tr:hover { background: #f8fafc; }
   padding: 16px;
   color: #6b7280;
   text-align: center;
+}
+
+.btn-acao {
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-right: 6px;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.btn-editar {
+  background: #3b82f6;
+  color: #fff;
+}
+
+.btn-editar:hover {
+  background: #1d4ed8;
+}
+
+.btn-apagar {
+  background: #ef4444;
+  color: #fff;
+}
+
+.btn-apagar:hover {
+  background: #dc2626;
+}
+
+tbody td {
+  padding: 10px 6px;
 }

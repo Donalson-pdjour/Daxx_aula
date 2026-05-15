@@ -278,6 +278,50 @@ def atualizar_produto(produto_id, dados):
                 dados["disponivel"]
             )
 
+        if "entrada" in dados:
+            produto.entrada = _numero_positivo(
+                dados["entrada"],
+                "entrada",
+                int,
+            ) or 0
+
+        if "saida" in dados:
+            produto.saida = _numero_positivo(
+                dados["saida"],
+                "saida",
+                int,
+            ) or 0
+
+        if "hora_entrada" in dados:
+            produto.hora_entrada = _texto_opcional(
+                dados["hora_entrada"]
+            )
+
+        if "hora_saida" in dados:
+            produto.hora_saida = _texto_opcional(
+                dados["hora_saida"]
+            )
+
+        if "data_entrada" in dados:
+            if dados["data_entrada"]:
+                from datetime import datetime
+                try:
+                    produto.data_entrada = datetime.fromisoformat(
+                        str(dados["data_entrada"]).replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    produto.data_entrada = None
+
+        if "data_saida" in dados:
+            if dados["data_saida"]:
+                from datetime import datetime
+                try:
+                    produto.data_saida = datetime.fromisoformat(
+                        str(dados["data_saida"]).replace("Z", "+00:00")
+                    )
+                except ValueError:
+                    produto.data_saida = None
+
         session.commit()
         session.refresh(produto)
 

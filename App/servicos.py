@@ -176,6 +176,13 @@ def cadastrar_produto(dados):
         "quantidade",
         int,
     )
+    status = dados.get("status")
+    if status in ("ativo", "inativo"):
+        disponivel = status == "ativo"
+    elif status in (None, ""):
+        disponivel = True
+    else:
+        raise ValueError("O campo 'status' deve ser 'ativo' ou 'inativo'.")
     descricao = _texto_opcional(dados.get("descricao"))
 
     session = SessionLocal()
@@ -187,6 +194,7 @@ def cadastrar_produto(dados):
             id_categoria=id_categoria,
             preco=preco,
             quantidade=quantidade,
+            disponivel=disponivel,
             descricao=descricao,
         )
 
@@ -277,6 +285,12 @@ def atualizar_produto(produto_id, dados):
             produto.disponivel = bool(
                 dados["disponivel"]
             )
+
+        if "status" in dados:
+            if dados["status"] in ("ativo", "inativo"):
+                produto.disponivel = dados["status"] == "ativo"
+            elif dados["status"] not in (None, ""):
+                raise ValueError("O campo 'status' deve ser 'ativo' ou 'inativo'.")
 
         if "entrada" in dados:
             produto.entrada = _numero_positivo(

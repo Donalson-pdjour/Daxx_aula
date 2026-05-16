@@ -12,12 +12,12 @@
     <p class="subtitulo">Cadastro de Produtos <code>/api/...</code></p>
   </header>
 
-  <nav class="abas">
-    <button class="aba ativa" data-tipo="produtos">Produtos</button>
-    <button class="aba" data-tipo="categorias">Categorias</button>
-    <button class="aba" data-tipo="funcionarios">Funcionários</button>
-    <button class="aba" data-tipo="clientes">Movimentos</button>
-  </nav>
+    <nav class="abas">
+      <button class="aba ativa" data-tipo="produtos">Produtos</button>
+      <button class="aba" data-tipo="categorias">Categorias</button>
+      <button class="aba" data-tipo="funcionarios">Funcionários</button>
+      <button class="aba" data-tipo="movimentos">Movimentação</button>
+    </nav>
 
   <main class="conteudo">
     <section id="painel-formulario">
@@ -34,7 +34,15 @@
     <section id="painel-tabela">
       <div class="cabecalho-painel">
         <h2 id="titulo-lista">Lista de Produtos</h2>
-        <button id="botao-recarregar" type="button">Recarregar</button>
+          <div class="filtros">
+            <label for="filtro-status">Status</label>
+            <select id="filtro-status">
+              <option value="">Todos</option>
+              <option value="ativo">Ativo</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
+          <button id="botao-recarregar" type="button">Recarregar</button>
       </div>
       <div id="status" class="status"></div>
       <table id="tabela">

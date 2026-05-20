@@ -163,7 +163,7 @@ def cadastrar_produto(dados):
     """Cadastra um novo produto."""
 
     nome = _texto_obrigatorio(dados.get("nome"), "nome")
-    codigo = _texto_opcional(dados.get("codigo", "codigo"))
+    codigo = _texto_obrigatorio(dados.get("codigo"), "codigo")
     id_categoria = dados.get("id_categoria")
     if id_categoria is not None and id_categoria != "":
         try:
@@ -184,6 +184,7 @@ def cadastrar_produto(dados):
     else:
         raise ValueError("O campo 'status' deve ser 'ativo' ou 'inativo'.")
     descricao = _texto_opcional(dados.get("descricao"))
+    imagem = _texto_opcional(dados.get("imagem"))
 
     session = SessionLocal()
 
@@ -194,6 +195,7 @@ def cadastrar_produto(dados):
             id_categoria=id_categoria,
             preco=preco,
             quantidade=quantidade,
+            imagem=imagem,
             disponivel=disponivel,
             descricao=descricao,
         )
@@ -273,6 +275,11 @@ def atualizar_produto(produto_id, dados):
         if "descricao" in dados:
             produto.descricao = _texto_opcional(
                 dados["descricao"]
+            )
+
+        if "imagem" in dados:
+            produto.imagem = _texto_opcional(
+                dados["imagem"]
             )
 
         if "id_categoria" in dados:

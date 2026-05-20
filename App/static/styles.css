@@ -193,6 +193,18 @@ th {
 
 tbody tr:hover { background: #f8fafc; }
 
+/* Hover sutil: levanta a linha e aplica sombra para dar movimento visual */
+tbody tr {
+  transition: transform 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  transform: translateY(0);
+}
+
+tbody tr:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: #ffffff;
+}
+
 .vazio {
   padding: 16px;
   color: #6b7280;

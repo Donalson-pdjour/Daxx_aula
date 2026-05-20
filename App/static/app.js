@@ -160,6 +160,16 @@ function renderizarLinhas(tipo, dados) {
     const tr = document.createElement("tr");
     for (const coluna of COLUNAS[tipo]) {
       const td = document.createElement("td");
+        if (coluna.chave === "imagem" && item[coluna.chave]) {
+          const img = document.createElement("img");
+          img.src = item[coluna.chave];
+          img.width = 50;
+          img.height = 50;
+          img.style.objectFit = "cover";
+          td.appendChild(img);
+          tr.appendChild(td);
+          continue;
+        }
       if (coluna.chave === "acoes") {
         if (tipo === "produtos") {
           const btnRetirar = document.createElement("button");
@@ -267,6 +277,9 @@ async function renderizarFormulario(tipo) {
     } else {
       const input = document.createElement("input");
       input.type = campo.tipo || "text";
+      if (campo.tipo === "file") {
+        input.accept = "image/*";
+      }
       input.id = `campo-${campo.nome}`;
       input.name = campo.nome;
       if (campo.obrigatorio) input.required = true;
@@ -290,6 +303,15 @@ function rotuloItem(origem, item) {
   return `${item.id}`;
 }
 
+function lerArquivoComoDataURL(arquivo) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(arquivo);
+  });
+}
+
 function limparMensagem() {
   mensagemFormulario.textContent = "";
   mensagemFormulario.classList.remove("sucesso", "erro");
@@ -302,6 +324,19 @@ async function enviarFormulario(evento) {
   const dados = {};
   for (const campo of CAMPOS[tipoAtual]) {
     const elemento = formulario.elements[campo.nome];
+    if (campo.tipo === "file") {
+      const arquivo = elemento.files[0];
+      if (campo.obrigatorio && !arquivo) {
+        mensagemFormulario.textContent = `Preencha ${campo.rotulo}.`;
+        mensagemFormulario.classList.add("erro");
+        elemento.focus();
+        return;
+      }
+      if (arquivo) {
+        dados[campo.nome] = await lerArquivoComoDataURL(arquivo);
+      }
+      continue;
+    }
     const valor = elemento.value.trim();
     if (campo.obrigatorio && !valor) {
       mensagemFormulario.textContent = `Preencha ${campo.rotulo}.`;
@@ -314,13 +349,19 @@ async function enviarFormulario(evento) {
 
   // Preencher automaticamente data e hora para entrada/saída
   if (tipoAtual === "produtos") {
-    const agora = new Date();
-    
-    // Se tem entrada, preencher data_entrada e hora_entrada
-    if (dados.entrada && !dados.data_entrada) {
-      dados.data_entrada = agora.toISOString();
-      dados.hora_entrada = agora.toTimeString().slice(0, 5);
-    }
+  const agora = new Date();
+
+  // Produto novo
+  if (!editandoId) {
+    dados.data_entrada = agora.toISOString();
+    dados.hora_entrada = agora.toTimeString().slice(0, 5);
+  }
+
+  // Produto editado
+  if (editandoId) {
+    dados.updated_at = agora.toISOString();
+  }
+
     
     // Se tem saída, preencher data_saida e hora_saida
     if (dados.saida && !dados.data_saida) {
@@ -505,6 +546,7 @@ function registrarMovimento(item, acao, dados = {}, infoExtra = "") {
     id: item.id,
     nome_produto: item.nome || item.codigo || `ID ${item.id}`,
     categoria: item.categoria || "-",
+    imagem: item.imagem || null,
     acao: acaoExibir,
     quantidade: quantidade || "-",
     data: dataMov.toLocaleDateString("pt-BR"),

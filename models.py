@@ -39,6 +39,7 @@ class Produto(Base):
 
     quantidade = Column(Integer, nullable=True)
     descricao = Column(String(500), nullable=True)
+    imagem = Column(String(500), nullable=True)
     disponivel = Column(Boolean, default=True)
 
     created_at = Column(
@@ -75,6 +76,7 @@ class Produto(Base):
             "id_categoria": self.id_categoria,
             "quantidade": self.quantidade,
             "descricao": self.descricao,
+            "imagem": self.imagem,
             "status": "ativo" if self.disponivel else "inativo",
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),

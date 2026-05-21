@@ -10,7 +10,7 @@ const COLUNAS = {
     { chave: "quantidade", titulo: "Quantidade" },
     { chave: "status", titulo: "Status" },
     { chave: "descricao", titulo: "Descrição" },
-     { chave: "data", titulo: "Data" },
+    { chave: "data", titulo: "Data" },
     { chave: "hora", titulo: "Hora" },
     { chave: "updated_at", titulo: "Alteração" },
     { chave: "valor_total", titulo: "Valor Total" },
@@ -31,9 +31,9 @@ const COLUNAS = {
 
   movimentos: [
     { chave: "id", titulo: "ID" },
+    {chave: "imagem", titulo:"Imagem"},
     { chave: "nome_produto", titulo: "Nome do Produto" },
     { chave: "categoria", titulo: "Categoria" },
-    {chave: "imagem", titulo:"Imagem"},
     { chave: "acao", titulo: "Ação" },
     { chave: "quantidade", titulo: "Quantidade" },
     { chave: "data", titulo: "Data" },
@@ -160,23 +160,26 @@ function renderizarLinhas(tipo, dados) {
     const tr = document.createElement("tr");
     for (const coluna of COLUNAS[tipo]) {
       const td = document.createElement("td");
-        if (coluna.chave === "imagem" && item[coluna.chave]) {
-          const img = document.createElement("img");
-          img.src = item[coluna.chave];
-          img.width = 50;
-          img.height = 50;
-          img.style.objectFit = "cover";
-          td.appendChild(img);
-          tr.appendChild(td);
-          continue;
-        }
+
+      if (coluna.chave === "imagem" && item[coluna.chave]) {
+        const img = document.createElement("img");
+        img.src = item[coluna.chave];
+        img.width = 50;
+        img.height = 50;
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "6px";
+        td.appendChild(img);
+        tr.appendChild(td);
+        continue;
+      }
+
       if (coluna.chave === "acoes") {
         if (tipo === "produtos") {
           const btnRetirar = document.createElement("button");
           btnRetirar.textContent = "➖ Retirar";
           btnRetirar.className = "btn-acao btn-retirar";
           btnRetirar.disabled = item.quantidade <= 0;
-          btnRetirar.title = item.quantidade > 0 ? "Retirar 1 unidade" : "Sem estoque";
+          btnRetirar.title = item.quantidade > 0 ? "Retirar produto" : "Sem estoque";
           btnRetirar.onclick = () => retirarProduto(item.id);
           td.appendChild(btnRetirar);
 
@@ -185,13 +188,6 @@ function renderizarLinhas(tipo, dados) {
           btnEditar.className = "btn-acao btn-editar";
           btnEditar.onclick = () => editarItem(item.id);
           td.appendChild(btnEditar);
-
-          const btnApagar = document.createElement("button");
-          btnApagar.textContent = "🗑️ Apagar";
-          btnApagar.className = "btn-acao btn-apagar";
-          btnApagar.onclick = () => deletarItem(item.id);
-          td.appendChild(btnApagar);
-
         }
       } else {
         let valor = item[coluna.chave];
@@ -206,6 +202,7 @@ function renderizarLinhas(tipo, dados) {
             valor = item.info;
           }
         }
+
         let textoExibir = "—";
         if (valor !== null && valor !== undefined) {
           if (coluna.chave === "data_entrada" || coluna.chave === "data_saida" || coluna.chave === "updated_at") {
@@ -218,12 +215,12 @@ function renderizarLinhas(tipo, dados) {
         }
         td.textContent = textoExibir;
       }
+
       tr.appendChild(td);
     }
     elementoCorpo.appendChild(tr);
   }
 }
-
 async function renderizarFormulario(tipo) {
   elementoCampos.innerHTML = "";
   if (tipo === "movimentos") {
@@ -249,29 +246,29 @@ async function renderizarFormulario(tipo) {
       placeholder.textContent = "Selecione...";
       select.appendChild(placeholder);
 
-        if (campo.origem === "status") {
-          for (const status of STATUS_OPCOES) {
-            const option = document.createElement("option");
-            option.value = status.valor;
-            option.textContent = status.rotulo;
-            select.appendChild(option);
-          }
-        } else {
-          try {
-            const itens = await buscar(campo.origem);
-            for (const item of itens) {
-              const option = document.createElement("option");
-              option.value = item.id;
-              option.textContent = rotuloItem(campo.origem, item);
-              select.appendChild(option);
-            }
-          } catch (erro) {
-            const option = document.createElement("option");
-            option.disabled = true;
-            option.textContent = `Erro ao carregar: ${erro.message}`;
-            select.appendChild(option);
-          }
+      if (campo.origem === "status") {
+        for (const status of STATUS_OPCOES) {
+          const option = document.createElement("option");
+          option.value = status.valor;
+          option.textContent = status.rotulo;
+          select.appendChild(option);
         }
+      } else {
+        try {
+          const itens = await buscar(campo.origem);
+          for (const item of itens) {
+            const option = document.createElement("option");
+            option.value = item.id;
+            option.textContent = rotuloItem(campo.origem, item);
+            select.appendChild(option);
+          }
+        } catch (erro) {
+          const option = document.createElement("option");
+          option.disabled = true;
+          option.textContent = `Erro ao carregar: ${erro.message}`;
+          select.appendChild(option);
+        }
+      }
 
       wrapper.appendChild(select);
     } else {
@@ -285,7 +282,6 @@ async function renderizarFormulario(tipo) {
       if (campo.obrigatorio) input.required = true;
       if (campo.placeholder) input.placeholder = campo.placeholder;
       
-      // Desabilitar campos de data/hora que são preenchidos automaticamente
       if (campo.nome.includes("data_") || campo.nome.includes("hora_")) {
         input.disabled = true;
         input.title = "Preenchido automaticamente ao registrar entrada/saída";
@@ -391,7 +387,9 @@ async function enviarFormulario(evento) {
     mensagemFormulario.textContent = `${acao} com sucesso.`;
     mensagemFormulario.classList.add("sucesso");
     formulario.reset();
+    let eraEdicao = false;
     if (editandoId) {
+      eraEdicao = true;
       editandoId = null;
       elementoTituloFormulario.textContent = TITULOS[tipoAtual].form;
       botao.textContent = "Cadastrar";
@@ -399,20 +397,17 @@ async function enviarFormulario(evento) {
     if (tipoAtual === "produtos") {
       let movimentoTipo = "entrada";
       let infoExtra = "";
-      
-      if (editandoId) {
-        if (dados.saida) {
-          movimentoTipo = "saida";
-          infoExtra = `${dados.saida} unidade(s) removida(s)`;
-        } else if (dados.entrada) {
-          movimentoTipo = "entrada";
-          infoExtra = `${dados.entrada} unidade(s) adicionada(s)`;
-        } else {
-          movimentoTipo = "alteracao";
-          infoExtra = "Produto alterado";
-        }
+      if (eraEdicao) {
+        movimentoTipo = "editar";
+        infoExtra = "Produto alterado";
       }
-      
+      if (eraEdicao && dados.saida) {
+        movimentoTipo = "saida";
+        infoExtra = `${dados.saida} unidade(s) removida(s)`;
+      } else if (eraEdicao && dados.entrada) {
+        movimentoTipo = "entrada";
+        infoExtra = `${dados.entrada} unidade(s) adicionada(s)`;
+      }
       registrarMovimento(item, movimentoTipo, dados, infoExtra);
     }
     await carregar(tipoAtual);
@@ -473,11 +468,21 @@ async function retirarProduto(id) {
       alert("Não é possível retirar: estoque vazio.");
       return;
     }
+    const quantidadeRetirada = Number(prompt("Quantas unidades você deseja retirar?", "1"));
+    if (!Number.isInteger(quantidadeRetirada) || quantidadeRetirada <= 0) {
+      alert("Informe um número válido de unidades para retirar.");
+      return;
+    }
+    if (quantidadeRetirada > quantidadeAtual) {
+      alert("A quantidade solicitada é maior que o estoque disponível.");
+      return;
+    }
+
 
     const agora = new Date();
     const dadosAtualizados = {
-      quantidade: quantidadeAtual - 1,
-      saida: 1,
+      quantidade: quantidadeAtual - quantidadeRetirada,
+      saida: quantidadeRetirada,
       data_saida: agora.toISOString(),
       hora_saida: agora.toTimeString().slice(0, 5),
     };
@@ -492,9 +497,8 @@ async function retirarProduto(id) {
       throw new Error(corpo.erro || `HTTP ${resposta.status}`);
     }
 
-    // usar o item atualizado retornado pelo servidor para registrar a movimentação
     const itemAtualizado = corpo;
-    registrarMovimento(itemAtualizado, "saida", { saida: 1, info: "Retirada rápida" });
+    registrarMovimento(itemAtualizado, "saida", { saida: quantidadeRetirada });
     await carregar(tipoAtual);
   } catch (erro) {
     alert(`Erro ao retirar produto: ${erro.message}`);
@@ -528,31 +532,39 @@ function registrarMovimento(item, acao, dados = {}, infoExtra = "") {
 
   const quantidade = Number(dados.entrada || dados.saida || dados.quantidade || 0);
 
-  let acaoExibir = "Entrada";
-  let infoDefault = "Produto adicionado";
+  let acaoExibir = "";
+  let infoDefault = "";
 
-  if (acao === "delete") {
-    acaoExibir = "Excluir";
-    infoDefault = "Produto excluído";
-  } else if (acao === "saida") {
+  // CADASTRO
+  if (acao === "entrada") {
+    acaoExibir = "Entrada";
+    infoDefault = "Produto cadastrado";
+  }
+
+  // EDIÇÃO
+  else if (acao === "editar") {
+    acaoExibir = "Editar";
+    infoDefault = "Produto editado";
+  }
+
+  // RETIRADA
+  else if (acao === "saida") {
     acaoExibir = "Saída";
-    infoDefault = "Produto removido";
-  } else if (acao === "alteracao") {
-    acaoExibir = "Alteração";
-    infoDefault = "Produto alterado";
+    infoDefault = "Produto saída";
   }
 
   const movimento = {
     id: item.id,
-    nome_produto: item.nome || item.codigo || `ID ${item.id}`,
-    categoria: item.categoria || "-",
     imagem: item.imagem || null,
+    nome_produto: item.nome || `ID ${item.id}`,
+    categoria: item.categoria || "-",
     acao: acaoExibir,
-    quantidade: quantidade || "-",
+    quantidade: dados.quantidade || dados.saida || "-",
     data: dataMov.toLocaleDateString("pt-BR"),
     hora: dataMov.toTimeString().slice(0, 5),
-    info: dados.info || infoExtra || infoDefault,
+    info: infoExtra || infoDefault,
   };
+
   salvarMovimento(movimento);
 }
 

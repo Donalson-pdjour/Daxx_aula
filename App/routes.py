@@ -100,13 +100,6 @@ def atualizar_produto_rota(produto_id):
         return _erro(str(exc), 404)
 
 
-@bp.delete("/produtos/<int:produto_id>")
-def deletar_produto_rota(produto_id):
-    try:
-        return fk.jsonify(deletar_produto(produto_id))
-
-    except ValueError as exc:
-        return _erro(str(exc), 404)
 
 
 paginas = fk.Blueprint("paginas", __name__)

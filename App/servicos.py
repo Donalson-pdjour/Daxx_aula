@@ -1,3 +1,12 @@
+def obter_produto(produto_id):
+    session = SessionLocal()
+    try:
+        produto = session.get(Produto, produto_id)
+        if not produto:
+            raise ValueError(f"Produto com ID {produto_id} não encontrado.")
+        return produto.to_dict()
+    finally:
+        session.close()
 """
 Regras de negócio e acesso ao banco (sessão + consultas).
 
@@ -12,31 +21,23 @@ from models import Produto, Tipos_categoria, Funcionarios
 
 
 def listar_produtos():
+
     session = SessionLocal()
+    linhas = session.scalars(
+        select(Produto).order_by(Produto.nome)
+    ).all()
+    return [p.to_dict() for p in linhas]
 
-    try:
-        linhas = session.scalars(
-            select(Produto).order_by(Produto.nome)
-        ).all()
-
-        return [p.to_dict() for p in linhas]
-
-    finally:
-        session.close()
 
 
 def listar_tipos_categoria():
+
     session = SessionLocal()
+    linhas = session.scalars(
+        select(Tipos_categoria).order_by(Tipos_categoria.nome)
+    ).all()
+    return [c.to_dict() for c in linhas]
 
-    try:
-        linhas = session.scalars(
-            select(Tipos_categoria).order_by(Tipos_categoria.nome)
-        ).all()
-
-        return [c.to_dict() for c in linhas]
-
-    finally:
-        session.close()
 
 
 def listar_categorias():
@@ -186,49 +187,33 @@ def cadastrar_produto(dados):
     descricao = _texto_opcional(dados.get("descricao"))
     imagem = _texto_opcional(dados.get("imagem"))
 
+    from datetime import datetime
+    data_hora = datetime.now()
+
     session = SessionLocal()
 
     try:
         produto = Produto(
+            imagem=imagem,
             nome=nome,
             codigo=codigo,
             id_categoria=id_categoria,
             preco=preco,
             quantidade=quantidade,
-            imagem=imagem,
             disponivel=disponivel,
+            created_at=data_hora,
+            updated_at=data_hora,
             descricao=descricao,
         )
-
         session.add(produto)
         session.commit()
         session.refresh(produto)
-
+        # Registrar movimentação de cadastro
+        registrar_movimentacao(session, produto.id, 'cadastro', data_hora)
         return produto.to_dict()
-
     except Exception:
         session.rollback()
         raise
-
-    finally:
-        session.close()
-
-
-def obter_produto(produto_id):
-    """Obtém um produto pelo ID."""
-
-    session = SessionLocal()
-
-    try:
-        produto = session.get(Produto, produto_id)
-
-        if not produto:
-            raise ValueError(
-                f"Produto com ID {produto_id} não encontrado."
-            )
-
-        return produto.to_dict()
-
     finally:
         session.close()
 
@@ -238,122 +223,123 @@ def atualizar_produto(produto_id, dados):
 
     session = SessionLocal()
 
-    try:
-        produto = session.get(Produto, produto_id)
+    produto = session.get(Produto, produto_id)
 
-        if not produto:
-            raise ValueError(
-                f"Produto com ID {produto_id} não encontrado."
-            )
+    if not produto:
+        raise ValueError(
+            f"Produto com ID {produto_id} não encontrado."
+        )
 
-        # Atualiza apenas os campos enviados
-        if "nome" in dados:
-            produto.nome = _texto_obrigatorio(
-                dados["nome"],
-                "nome",
-            )
+    # Atualiza apenas os campos enviados
+    if "imagem" in dados:
+        produto.imagem = _texto_opcional(
+            dados["imagem"]
+        )
 
-        if "codigo" in dados:
-            produto.codigo = _texto_opcional(
-                dados["codigo"]
-            )
+    if "nome" in dados:
+        produto.nome = _texto_obrigatorio(
+            dados["nome"],
+            "nome",
+        )
 
-        if "preco" in dados:
-            produto.preco = _numero_positivo(
-                dados["preco"],
-                "preco",
-                float,
-            )
+    if "codigo" in dados:
+        produto.codigo = _texto_opcional(
+            dados["codigo"]
+        )
 
-        if "quantidade" in dados:
-            produto.quantidade = _numero_positivo(
-                dados["quantidade"],
-                "quantidade",
-                int,
-            )
+    if "preco" in dados:
+        produto.preco = _numero_positivo(
+            dados["preco"],
+            "preco",
+            float,
+        )
 
-        if "descricao" in dados:
-            produto.descricao = _texto_opcional(
-                dados["descricao"]
-            )
+    if "quantidade" in dados:
+        produto.quantidade = _numero_positivo(
+            dados["quantidade"],
+            "quantidade",
+            int,
+        )
 
-        if "imagem" in dados:
-            produto.imagem = _texto_opcional(
-                dados["imagem"]
-            )
+    if "descricao" in dados:
+        produto.descricao = _texto_opcional(
+            dados["descricao"]
+        )
+    
+    if "id_categoria" in dados:
+        produto.id_categoria = (
+            int(dados["id_categoria"])
+            if dados["id_categoria"] not in (None, "")
+            else None
+        )
+    if "disponivel" in dados:
+        produto.disponivel = bool(
+            dados["disponivel"]
+        )
 
-        if "id_categoria" in dados:
-            produto.id_categoria = (
-                int(dados["id_categoria"])
-                if dados["id_categoria"] not in (None, "")
-                else None
-            )
-        if "disponivel" in dados:
-            produto.disponivel = bool(
-                dados["disponivel"]
-            )
+    if "status" in dados:
+        if dados["status"] in ("ativo", "inativo"):
+            produto.disponivel = dados["status"] == "ativo"
+        elif dados["status"] not in (None, ""):
+            raise ValueError("O campo 'status' deve ser 'ativo' ou 'inativo'.")
 
-        if "status" in dados:
-            if dados["status"] in ("ativo", "inativo"):
-                produto.disponivel = dados["status"] == "ativo"
-            elif dados["status"] not in (None, ""):
-                raise ValueError("O campo 'status' deve ser 'ativo' ou 'inativo'.")
+    if "entrada" in dados:
+        produto.entrada = _numero_positivo(
+            dados["entrada"],
+            "entrada",
+            int,
+        ) or 0
 
-        if "entrada" in dados:
-            produto.entrada = _numero_positivo(
-                dados["entrada"],
-                "entrada",
-                int,
-            ) or 0
+    if "saida" in dados:
+        produto.saida = _numero_positivo(
+            dados["saida"],
+            "saida",
+            int,
+        ) or 0
 
-        if "saida" in dados:
-            produto.saida = _numero_positivo(
-                dados["saida"],
-                "saida",
-                int,
-            ) or 0
+    if "hora_entrada" in dados:
+        produto.hora_entrada = _texto_opcional(
+            dados["hora_entrada"]
+        )
 
-        if "hora_entrada" in dados:
-            produto.hora_entrada = _texto_opcional(
-                dados["hora_entrada"]
-            )
+    if "hora_saida" in dados:
+        produto.hora_saida = _texto_opcional(
+            dados["hora_saida"]
+        )
 
-        if "hora_saida" in dados:
-            produto.hora_saida = _texto_opcional(
-                dados["hora_saida"]
-            )
+    if "data_entrada" in dados:
+        if dados["data_entrada"]:
+            from datetime import datetime
+            try:
+                produto.data_entrada = datetime.fromisoformat(
+                    str(dados["data_entrada"]).replace("Z", "+00:00")
+                )
+            except ValueError:
+                produto.data_entrada = None
 
-        if "data_entrada" in dados:
-            if dados["data_entrada"]:
-                from datetime import datetime
-                try:
-                    produto.data_entrada = datetime.fromisoformat(
-                        str(dados["data_entrada"]).replace("Z", "+00:00")
-                    )
-                except ValueError:
-                    produto.data_entrada = None
+    if "data_saida" in dados:
+        if dados["data_saida"]:
+            from datetime import datetime
+            try:
+                produto.data_saida = datetime.fromisoformat(
+                    str(dados["data_saida"]).replace("Z", "+00:00")
+                )
+            except ValueError:
+                produto.data_saida = None
 
-        if "data_saida" in dados:
-            if dados["data_saida"]:
-                from datetime import datetime
-                try:
-                    produto.data_saida = datetime.fromisoformat(
-                        str(dados["data_saida"]).replace("Z", "+00:00")
-                    )
-                except ValueError:
-                    produto.data_saida = None
+    from datetime import datetime
+    produto.updated_at = datetime.now()
+    registrar_movimentacao(session, produto.id, 'alteracao', produto.updated_at)
 
-        session.commit()
-        session.refresh(produto)
-
-        return produto.to_dict()
-
-    except Exception:
-        session.rollback()
-        raise
-
-    finally:
-        session.close()
+    session.commit()
+    session.refresh(produto)
+    return produto.to_dict()
+# Função para registrar movimentação
+def registrar_movimentacao(session, produto_id, acao, data_hora):
+    # Aqui você pode criar uma tabela Movimentacao no banco e registrar a ação
+    # Exemplo: Movimentacao(produto_id=produto_id, acao=acao, data_hora=data_hora)
+    # Por enquanto, apenas imprime (substitua por lógica real se já tiver a tabela)
+    print(f"Movimentação: Produto {produto_id} - {acao} em {data_hora}")
 
 
 def deletar_produto(produto_id):

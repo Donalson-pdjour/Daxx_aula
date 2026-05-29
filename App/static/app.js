@@ -340,6 +340,16 @@ async function enviarFormulario(evento) {
       elemento.focus();
       return;
     }
+    // Validação específica para preço
+    if (campo.nome === "preco" && valor !== "") {
+      // Não permite letras, nem número negativo
+      if (!/^(\d+)([\.,]\d{1,2})?$/.test(valor) || parseFloat(valor.replace(',', '.')) < 0) {
+        mensagemFormulario.textContent = "Digite um preço válido e positivo.";
+        mensagemFormulario.classList.add("erro");
+        elemento.focus();
+        return;
+      }
+    }
     if (valor !== "") dados[campo.nome] = valor;
   }
 

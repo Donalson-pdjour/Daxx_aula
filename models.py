@@ -30,14 +30,14 @@ class Produto(Base):
         nullable=False,
     )
 
-    preco = Column(Float, nullable=True)
+    preco = Column(Float, nullable=False)
     id_categoria = Column(
         Integer,
         ForeignKey("tipos_categoria.id"),
-        nullable=True,
+        nullable=False,
     )
 
-    quantidade = Column(Integer, nullable=True)
+    quantidade = Column(Integer, nullable=False)
     descricao = Column(String(500), nullable=True)
     imagem = Column(String(500), nullable=True)
     disponivel = Column(Boolean, default=True)
@@ -126,6 +126,21 @@ class Tipos_categoria(Base):
     def __repr__(self):
         return f"<Tipos_categoria {self.id} {self.nome!r}>"
 
+
+class Movimentacao(Base):
+    __tablename__ = "movimentacoes"
+
+    id = Column(Integer, primary_key=True)
+    produto_id = Column(Integer, ForeignKey("produtos.id"), nullable=False)
+    acao = Column(String(50), nullable=False)
+    data_hora = Column(DateTime, default=datetime.now, nullable=False)
+    quantidade = Column(Integer, nullable=True)
+    data_exclusao_agendada = Column(DateTime, nullable=True)
+
+    produto = relationship("Produto")
+
+    def __repr__(self):
+        return f"<Movimentacao {self.id} Produto:{self.produto_id} {self.acao} em {self.data_hora}>"
 
 class Funcionarios(Base):
     __tablename__ = "funcionarios"

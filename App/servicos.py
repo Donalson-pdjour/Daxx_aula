@@ -17,7 +17,7 @@ Isso deixa o código mais organizado e fácil de explicar.
 from sqlalchemy import select
 
 from database import SessionLocal
-from models import Produto, Tipos_categoria, Funcionarios
+from models import Produto, Tipos_categoria, Funcionarios, Movimentacao
 
 
 def listar_produtos():
@@ -166,17 +166,22 @@ def cadastrar_produto(dados):
     nome = _texto_obrigatorio(dados.get("nome"), "nome")
     codigo = _texto_obrigatorio(dados.get("codigo"), "codigo")
     id_categoria = dados.get("id_categoria")
-    if id_categoria is not None and id_categoria != "":
-        try:
-            id_categoria = int(id_categoria)
-        except (ValueError, TypeError):
-            raise ValueError("O campo 'id_categoria' deve ser um número válido.")
+    if id_categoria is None or id_categoria == "":
+        raise ValueError("O campo 'id_categoria' é obrigatório.")
+    try:
+        id_categoria = int(id_categoria)
+    except (ValueError, TypeError):
+        raise ValueError("O campo 'id_categoria' deve ser um número válido.")
     preco = _numero_positivo(dados.get("preco"), "preco", float)
+    if preco is None:
+        raise ValueError("O campo 'preco' é obrigatório.")
     quantidade = _numero_positivo(
         dados.get("quantidade"),
         "quantidade",
         int,
     )
+    if quantidade is None:
+        raise ValueError("O campo 'quantidade' é obrigatório.")
     status = dados.get("status")
     if status in ("ativo", "inativo"):
         disponivel = status == "ativo"
@@ -335,11 +340,16 @@ def atualizar_produto(produto_id, dados):
     session.refresh(produto)
     return produto.to_dict()
 # Função para registrar movimentação
-def registrar_movimentacao(session, produto_id, acao, data_hora):
-    # Aqui você pode criar uma tabela Movimentacao no banco e registrar a ação
-    # Exemplo: Movimentacao(produto_id=produto_id, acao=acao, data_hora=data_hora)
-    # Por enquanto, apenas imprime (substitua por lógica real se já tiver a tabela)
-    print(f"Movimentação: Produto {produto_id} - {acao} em {data_hora}")
+def registrar_movimentacao(session, produto_id, acao, data_hora, quantidade=None, data_exclusao_agendada=None):
+    mov = Movimentacao(
+        produto_id=produto_id,
+        acao=acao,
+        data_hora=data_hora,
+        quantidade=quantidade,
+        data_exclusao_agendada=data_exclusao_agendada
+    )
+    session.add(mov)
+    session.commit()
 
 
 def deletar_produto(produto_id):
